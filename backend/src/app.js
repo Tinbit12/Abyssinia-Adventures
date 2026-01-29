@@ -40,7 +40,7 @@ app.get('/api/health', (req, res) => {
 
 // Root endpoint
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Welcome to Abyssinia Adventures API',
     endpoints: {
       destinations: '/api/destinations',

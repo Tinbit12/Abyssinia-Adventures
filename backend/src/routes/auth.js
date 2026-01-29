@@ -19,7 +19,7 @@ const User = require('../models/User');
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // At least 8 chars, with letters, numbers and symbols
 const PASSWORD_REGEX =
-  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()[\]{}_+\\-=:;'",.<>/?`~|]).{8,}$/;
+  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()[\]{}_+=:;'",.<>/?`~|\\-]).{8,}$/;
 
 function hashPassword(password, salt) {
   // pbkdf2 returns a Buffer; store as hex string.
