@@ -14,9 +14,13 @@ const connectDB = async () => {
     
     console.log('✅ MongoDB connected successfully');
   } catch (error) {
-    console.error('❌ MongoDB connection error:', error.message);
-    // Exit process if database connection fails
-    process.exit(1);
+    // Do not terminate the process in development.
+    // Instead, log a clear warning and allow the server
+    // to continue running in fallback (sample data) mode.
+    console.warn(
+      '❌ MongoDB connection failed. Running in fallback (sample data) mode.',
+      error.message
+    );
   }
 };
 

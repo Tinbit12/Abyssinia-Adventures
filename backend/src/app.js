@@ -10,6 +10,7 @@ const connectDB = require('./db');
 const destinationsRoutes = require('./routes/destinations');
 const packagesRoutes = require('./routes/packages');
 const contactRoutes = require('./routes/contact');
+const authRoutes = require('./routes/auth');
 
 // Initialize Express app
 const app = express();
@@ -30,6 +31,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/destinations', destinationsRoutes);
 app.use('/api/packages', packagesRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/auth', authRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
