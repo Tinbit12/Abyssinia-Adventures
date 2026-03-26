@@ -47,4 +47,5 @@ Thumbs.db
 # Misc
 # =========================
 .pnp
-.pnp.js
+.pnp.js.env 
+.env.* 
