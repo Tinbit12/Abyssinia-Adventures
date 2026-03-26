@@ -1,29 +1,17 @@
-// Destination Model
-// Defines the schema for travel destinations stored in MongoDB
+// Destination model for travel destinations
 
 const mongoose = require('mongoose');
 
-const destinationSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true
+const destinationSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    description: { type: String, required: true },
+    image: { type: String, required: true },
+    location: { type: String, required: true },
+    /** Optional max guests per day; null = unlimited */
+    maxCapacity: { type: Number, default: null, min: 1 },
   },
-  description: {
-    type: String,
-    required: true
-  },
-  image: {
-    type: String,
-    required: true
-  },
-  location: {
-    type: String,
-    required: true
-  }
-}, {
-  timestamps: true // Automatically adds createdAt and updatedAt fields
-});
+  { timestamps: true }
+);
 
-// Create and export the Destination model
 module.exports = mongoose.model('Destination', destinationSchema);

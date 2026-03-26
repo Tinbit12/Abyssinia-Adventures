@@ -1,97 +1,54 @@
-// Auth API Routes
-// Provides signup and login endpoints backed by MongoDB (Mongoose).
-//
-// Endpoints:
-// - POST /api/auth/signup
-// - POST /api/auth/login
-//
-// Notes:
-// - Uses Node's built-in crypto (pbkdf2) for password hashing (no extra deps).
-// - Returns safe user data (never returns password fields).
-// - Does not crash the server if MongoDB is unavailable; returns meaningful errors.
+// Auth routes: signup, login, change-password, delete account
+// Uses shared auth middleware for protected routes
 
 const express = require('express');
-const crypto = require('crypto');
 const router = express.Router();
-
+const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { authMiddleware, JWT_SECRET } = require('../middleware/auth');
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-// At least 8 chars, with letters, numbers and symbols
-const PASSWORD_REGEX =
-  /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()[\]{}_+=:;'",.<>/?`~|\\-]).{8,}$/;
+const strongPasswordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()[\]{}_+\-=:;'",.<>/?`~|]).{8,}$/;
+const isStrongPassword = (p) => p && strongPasswordRegex.test(p);
 
-function hashPassword(password, salt) {
-  // pbkdf2 returns a Buffer; store as hex string.
-  // Iterations/keylen/digest chosen for dev safety without external dependencies.
-  const iterations = 100000;
-  const keylen = 64;
-  const digest = 'sha512';
-  return crypto.pbkdf2Sync(password, salt, iterations, keylen, digest).toString('hex');
-}
-
-function sanitizeUser(userDoc) {
-  // Ensure we never return password/salt.
-  return {
-    _id: userDoc._id,
-    name: userDoc.name,
-    email: userDoc.email,
-    role: userDoc.role,
-    createdAt: userDoc.createdAt,
-    updatedAt: userDoc.updatedAt,
-  };
-}
+/** Helper: return user object for API response (includes role, no password) */
+const toUserResponse = (user) => ({
+  _id: user._id,
+  name: user.name,
+  email: user.email,
+  role: user.role || 'user',
+});
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
   try {
     const { name, email, password } = req.body || {};
-
-    // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'Name, email, and password are required' });
     }
-    if (!EMAIL_REGEX.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
-    if (!PASSWORD_REGEX.test(String(password))) {
+    if (!isStrongPassword(password)) {
       return res.status(400).json({
-        error:
-          'Password must be at least 8 characters and include letters, numbers, and symbols',
+        error: 'Password must be at least 8 characters and include letters, numbers, and symbols',
       });
     }
-
-    // Prevent duplicate users
-    const existing = await User.findOne({ email: String(email).toLowerCase() });
+    const existing = await User.findOne({ email: email.trim().toLowerCase() });
     if (existing) {
-      return res.status(409).json({ error: 'An account with this email already exists' });
+      return res.status(400).json({ error: 'Email already registered' });
     }
-
-    // Hash password
-    const salt = crypto.randomBytes(16).toString('hex');
-    const passwordHash = hashPassword(String(password), salt);
-
     const user = await User.create({
-      name: String(name).trim(),
-      email: String(email).toLowerCase().trim(),
-      password: passwordHash,
-      passwordSalt: salt,
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password,
     });
-
-    return res.status(201).json({
-      message: 'Signup successful',
-      user: sanitizeUser(user),
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({
+      user: toUserResponse(user),
+      token,
     });
-  } catch (error) {
-    // Common Mongo error: duplicate key (race condition)
-    if (error && error.code === 11000) {
-      return res.status(409).json({ error: 'An account with this email already exists' });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ error: 'Email already registered' });
     }
-
-    return res.status(500).json({
-      error: 'Signup failed',
-      message: error.message,
-    });
+    res.status(500).json({ error: err.message || 'Signup failed' });
   }
 });
 
@@ -99,39 +56,62 @@ router.post('/signup', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body || {};
-
-    // Validate required fields
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
-    if (!EMAIL_REGEX.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
+    const user = await User.findOne({ email: email.trim().toLowerCase() }).select('+password');
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({ error: 'Invalid email or password' });
     }
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({
+      user: toUserResponse(user),
+      token,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Login failed' });
+  }
+});
 
-    // Need password + salt for verification, hence select('+password +passwordSalt')
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select(
-      '+password +passwordSalt'
-    );
+// PUT /api/auth/change-password (requires Bearer token)
+router.put('/change-password', authMiddleware, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body || {};
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({
+        error: 'New password must be at least 8 characters and include letters, numbers, and symbols',
+      });
+    }
+    const user = await User.findById(req.userId).select('+password');
     if (!user) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+      return res.status(401).json({ error: 'User not found' });
     }
-
-    const computed = hashPassword(String(password), user.passwordSalt);
-    if (computed !== user.password) {
-      return res.status(401).json({ error: 'Invalid email or password' });
+    const match = await user.comparePassword(currentPassword);
+    if (!match) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
     }
+    user.password = newPassword;
+    await user.save();
+    res.json({ message: 'Password changed successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to change password' });
+  }
+});
 
-    return res.json({
-      message: 'Login successful',
-      user: sanitizeUser(user),
-    });
-  } catch (error) {
-    return res.status(500).json({
-      error: 'Login failed',
-      message: error.message,
-    });
+// DELETE /api/auth/account - User can delete their own account (requires Bearer token)
+router.delete('/account', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ message: 'Account deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to delete account' });
   }
 });
 
 module.exports = router;
-

@@ -1,36 +1,17 @@
-// Database Connection File
-// Handles secure MongoDB connection using Mongoose
+// Database connection (MongoDB via Mongoose)
+// Used by app.js and seed script. Supports MONGO_URI or MONGODB_URI in .env
 
 const mongoose = require('mongoose');
-require('dotenv').config();
 
-// Read the MongoDB connection string from .env file
-const MONGO_URI = process.env.MONGO_URI;
+const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
-// Connect to MongoDB
 const connectDB = async () => {
-  try {
-    if (!MONGO_URI) {
-      throw new Error('MONGO_URI is not defined in .env file');
-    }
-
-    // Connect to MongoDB using Mongoose
-    await mongoose.connect(MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-
-    console.log('✅ MongoDB connected successfully');
-  } catch (error) {
-    // Do not terminate the process in development.
-    // Instead, log a clear warning and allow the server
-    // to continue running in fallback (sample data) mode.
-    console.warn(
-      '❌ MongoDB connection failed. Running in fallback (sample data) mode.',
-      error.message
-    );
+  if (!uri) {
+    throw new Error('Missing MONGO_URI or MONGODB_URI in .env');
   }
+  const conn = await mongoose.connect(uri);
+  console.log(`MongoDB connected: ${conn.connection.host}`);
+  return conn;
 };
 
-// Export the connection function
 module.exports = connectDB;

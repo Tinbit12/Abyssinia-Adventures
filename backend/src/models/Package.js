@@ -1,33 +1,18 @@
-// Package Model
-// Defines the schema for tour packages stored in MongoDB
+// Package model for tour packages
 
 const mongoose = require('mongoose');
 
-const packageSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true
+const packageSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    duration: { type: String, required: true },
+    price: { type: Number, required: true, min: 0 },
+    description: { type: String, required: true },
+    image: { type: String, required: true },
+    /** Optional max guests per day; null = unlimited */
+    maxCapacity: { type: Number, default: null, min: 1 },
   },
-  duration: {
-    type: String,
-    required: true
-  },
-  price: {
-    type: Number,
-    required: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  image: {
-    type: String,
-    required: true
-  }
-}, {
-  timestamps: true // Automatically adds createdAt and updatedAt fields
-});
+  { timestamps: true }
+);
 
-// Create and export the Package model
 module.exports = mongoose.model('Package', packageSchema);

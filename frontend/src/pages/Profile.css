@@ -1,0 +1,218 @@
+/* Profile Page Styles - matches Auth and existing UI (green / golden) */
+
+.profile-hero {
+  background: linear-gradient(rgba(44, 62, 80, 0.8), rgba(44, 62, 80, 0.8)),
+    url('https://images.unsplash.com/photo-1551632811-561732d1e306?w=1920') center/cover;
+  color: white;
+  text-align: center;
+  padding: 80px 0;
+}
+
+.profile-hero h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.profile-hero p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+}
+
+.profile-card {
+  max-width: 520px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  padding: 28px 24px 24px;
+}
+
+.profile-info,
+.profile-section {
+  margin-bottom: 28px;
+}
+
+.profile-info:last-of-type,
+.profile-section:last-of-type {
+  margin-bottom: 0;
+}
+
+.profile-info h2,
+.profile-section h2 {
+  font-size: 1.25rem;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
+
+.profile-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: #2ecc71;
+  color: #ffffff;
+  font-size: 2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  text-transform: uppercase;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.profile-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-label {
+  font-size: 0.875rem;
+  color: #7f8c8d;
+  font-weight: 500;
+}
+
+.profile-value {
+  font-size: 1rem;
+  color: #2c3e50;
+}
+
+.profile-message {
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  color: #2c3e50;
+}
+
+.profile-message.success {
+  background: #d5f4e6;
+  color: #1e8449;
+}
+
+.profile-message.error {
+  background: #fadbd8;
+  color: #c0392b;
+}
+
+.profile-form {
+  margin-top: 8px;
+}
+
+.profile-field {
+  margin-bottom: 14px;
+}
+
+.profile-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.profile-field input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.profile-field input:focus {
+  outline: none;
+  border-color: #3498db;
+}
+
+.profile-field input.invalid {
+  border-color: #e74c3c;
+}
+
+.profile-hint {
+  display: inline-block;
+  margin-top: 6px;
+  color: #e74c3c;
+  font-size: 0.875rem;
+}
+
+/* Primary button: green, hover golden - matches Auth/App */
+.profile-btn {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 6px;
+  background-color: #2ecc71;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.profile-btn:hover:not(:disabled) {
+  background-color: #f1c40f;
+  color: #2c3e50;
+}
+
+.profile-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.profile-section .profile-btn {
+  margin-top: 4px;
+}
+
+/* Logout button - secondary style, still consistent */
+.profile-actions {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #ecf0f1;
+}
+
+.profile-btn-logout {
+  background-color: #95a5a6;
+}
+
+.profile-btn-logout:hover {
+  background-color: #7f8c8d;
+  color: #ffffff;
+}
+
+.profile-danger {
+  border-top: 1px solid #ecf0f1;
+  padding-top: 24px;
+  margin-top: 24px;
+}
+
+.profile-btn-danger {
+  background-color: #e74c3c;
+  margin-top: 8px;
+}
+
+.profile-btn-danger:hover:not(:disabled) {
+  background-color: #c0392b;
+  color: #ffffff;
+}
+
+@media (max-width: 768px) {
+  .profile-hero h1 {
+    font-size: 2rem;
+  }
+
+  .profile-hero p {
+    font-size: 1.05rem;
+  }
+
+  .profile-card {
+    padding: 20px 18px;
+  }
+}

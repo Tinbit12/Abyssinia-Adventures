@@ -1,55 +1,28 @@
-// User Model
-// Provides a stable, production-ready schema for signup/login.
-//
-// Note:
-// - This repository did not currently include auth routes/models in `backend/src`.
-// - This schema is added to support future/other parts of your backend without
-//   changing unrelated routes.
-// - Password handling should be done in routes/services (hash before save).
+// User model for authentication (signup, login, change password)
 
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-      trim: true,
-    },
-    email: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-      trim: true,
-      lowercase: true,
-    },
-
-    // Store a hashed password (recommended). We keep the field name `password`
-    // because many starter auth routes expect it, but it should contain a hash.
-    password: {
-      type: String,
-      required: true,
-      select: false, // do not return by default in queries
-    },
-
-    // Salt used for hashing the password (pbkdf2). Stored separately so we can
-    // verify passwords on login without introducing external dependencies.
-    passwordSalt: {
-      type: String,
-      required: true,
-      select: false, // do not return by default in queries
-    },
-
-    role: {
-      type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
-    },
+    name: { type: String, required: true, trim: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true, minlength: 8, select: false },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-module.exports = mongoose.model('User', userSchema);
+// Hash password before saving
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
 
+// Compare password helper (used in login and change-password)
+userSchema.methods.comparePassword = function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
+
+module.exports = mongoose.model('User', userSchema);

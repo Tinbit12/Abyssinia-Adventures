@@ -1,9 +1,10 @@
 // Destinations API Routes
-// Handles all HTTP requests related to destinations
+// Handles all HTTP requests related to destinations (public GET; admin CRUD for create/update/delete)
 
 const express = require('express');
 const router = express.Router();
 const Destination = require('../models/Destination');
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 // In-memory fallback sample destinations.
 // Used when the database is reachable but contains no destination documents.
@@ -68,6 +69,68 @@ router.get('/:id', async (req, res) => {
     res.json(destination);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch destination', message: error.message });
+  }
+});
+
+// --- Admin-only CRUD (require admin role) ---
+
+// POST /api/destinations - Create destination (admin only)
+router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { name, description, image, location } = req.body || {};
+    if (!name || !description || !image || !location) {
+      return res.status(400).json({
+        error: 'name, description, image, and location are required',
+      });
+    }
+    const destination = await Destination.create({
+      name: String(name).trim(),
+      description: String(description).trim(),
+      image: String(image).trim(),
+      location: String(location).trim(),
+    });
+    res.status(201).json(destination);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to create destination' });
+  }
+});
+
+// PUT /api/destinations/:id - Update destination (admin only)
+router.put('/:id', adminMiddleware, async (req, res) => {
+  try {
+    const destination = await Destination.findById(req.params.id);
+    if (!destination) {
+      return res.status(404).json({ error: 'Destination not found' });
+    }
+    const { name, description, image, location, maxCapacity } = req.body || {};
+    if (name !== undefined) destination.name = String(name).trim();
+    if (description !== undefined) destination.description = String(description).trim();
+    if (image !== undefined) destination.image = String(image).trim();
+    if (location !== undefined) destination.location = String(location).trim();
+    if (maxCapacity !== undefined) {
+      if (maxCapacity === null) destination.maxCapacity = null;
+      else {
+        const cap = Number(maxCapacity);
+        if (Number.isInteger(cap) && cap >= 1) destination.maxCapacity = cap;
+      }
+    }
+    await destination.save();
+    res.json(destination);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to update destination' });
+  }
+});
+
+// DELETE /api/destinations/:id - Delete destination (admin only)
+router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const destination = await Destination.findByIdAndDelete(req.params.id);
+    if (!destination) {
+      return res.status(404).json({ error: 'Destination not found' });
+    }
+    res.json({ message: 'Destination deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to delete destination' });
   }
 });
 

@@ -1,9 +1,10 @@
 // Packages API Routes
-// Handles all HTTP requests related to tour packages
+// Handles all HTTP requests related to tour packages (public GET; admin CRUD for create/update/delete)
 
 const express = require('express');
 const router = express.Router();
 const Package = require('../models/Package');
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 // In-memory fallback sample tour packages.
 // Used when the database is reachable but contains no package documents.
@@ -64,13 +65,89 @@ router.get('/', async (req, res) => {
 // GET /api/packages/:id - Fetch a single package by ID
 router.get('/:id', async (req, res) => {
   try {
-    const package = await Package.findById(req.params.id);
-    if (!package) {
+    const pkg = await Package.findById(req.params.id);
+    if (!pkg) {
       return res.status(404).json({ error: 'Package not found' });
     }
-    res.json(package);
+    res.json(pkg);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch package', message: error.message });
+  }
+});
+
+// --- Admin-only CRUD (require admin role) ---
+
+// POST /api/packages - Create package (admin only)
+router.post('/', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { title, duration, price, description, image, maxCapacity } = req.body || {};
+    if (!title || duration === undefined || price === undefined || !description || !image) {
+      return res.status(400).json({
+        error: 'title, duration, price, description, and image are required',
+      });
+    }
+    const priceNum = Number(price);
+    if (Number.isNaN(priceNum) || priceNum < 0) {
+      return res.status(400).json({ error: 'price must be a non-negative number' });
+    }
+    const payload = {
+      title: String(title).trim(),
+      duration: String(duration).trim(),
+      price: priceNum,
+      description: String(description).trim(),
+      image: String(image).trim(),
+    };
+    if (maxCapacity !== undefined && maxCapacity !== null) {
+      const cap = Number(maxCapacity);
+      if (Number.isInteger(cap) && cap >= 1) payload.maxCapacity = cap;
+    }
+    const pkg = await Package.create(payload);
+    res.status(201).json(pkg);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to create package' });
+  }
+});
+
+// PUT /api/packages/:id - Update package (admin only)
+router.put('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const pkg = await Package.findById(req.params.id);
+    if (!pkg) {
+      return res.status(404).json({ error: 'Package not found' });
+    }
+    const { title, duration, price, description, image, maxCapacity } = req.body || {};
+    if (title !== undefined) pkg.title = String(title).trim();
+    if (duration !== undefined) pkg.duration = String(duration).trim();
+    if (price !== undefined) {
+      const priceNum = Number(price);
+      if (!Number.isNaN(priceNum) && priceNum >= 0) pkg.price = priceNum;
+    }
+    if (description !== undefined) pkg.description = String(description).trim();
+    if (image !== undefined) pkg.image = String(image).trim();
+    if (maxCapacity !== undefined) {
+      if (maxCapacity === null) pkg.maxCapacity = null;
+      else {
+        const cap = Number(maxCapacity);
+        if (Number.isInteger(cap) && cap >= 1) pkg.maxCapacity = cap;
+      }
+    }
+    await pkg.save();
+    res.json(pkg);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to update package' });
+  }
+});
+
+// DELETE /api/packages/:id - Delete package (admin only)
+router.delete('/:id', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const pkg = await Package.findByIdAndDelete(req.params.id);
+    if (!pkg) {
+      return res.status(404).json({ error: 'Package not found' });
+    }
+    res.json({ message: 'Package deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to delete package' });
   }
 });
 

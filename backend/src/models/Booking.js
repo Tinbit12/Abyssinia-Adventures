@@ -1,69 +1,29 @@
-// Booking Model
-// Provides a stable schema for storing bookings made by users.
-//
-// Design goals:
-// - Flexible references: bookings can be tied to a destination, a package, or both
-// - Minimal required fields to avoid breaking existing flows
-// - Extensible `details` for future booking-specific fields
+// Booking model for user bookings (destinations or packages)
+// Linked to User; stores item type (destination/package), date, number of people, note, status
+// Indexes support duplicate check (one active booking per user per item per day) and capacity checks
 
 const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      index: true,
-    },
-
-    destination: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Destination',
-      index: true,
-    },
-
-    package: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Package',
-      index: true,
-    },
-
-    startDate: { type: Date },
-    endDate: { type: Date },
-
-    travelers: {
-      type: Number,
-      min: 1,
-      default: 1,
-    },
-
-    totalPrice: {
-      type: Number,
-      min: 0,
-    },
-
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    itemType: { type: String, enum: ['destination', 'package'], required: true },
+    itemId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    date: { type: Date, required: true },
+    numberOfPeople: { type: Number, required: true, min: 1 },
+    note: { type: String, default: '' },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'cancelled'],
+      enum: ['pending', 'approved', 'cancelled'],
       default: 'pending',
-      index: true,
-    },
-
-    // Optional contact info captured at booking time
-    contactName: { type: String, trim: true },
-    contactEmail: { type: String, trim: true, lowercase: true },
-    contactPhone: { type: String, trim: true },
-
-    // Free-form extension field for any booking-specific details.
-    details: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-module.exports = mongoose.model('Booking', bookingSchema);
+// Index for duplicate check: same user + item + date (day)
+bookingSchema.index({ user: 1, itemType: 1, itemId: 1, date: 1 });
+// Index for capacity/availability: item + date
+bookingSchema.index({ itemType: 1, itemId: 1, date: 1, status: 1 });
 
+module.exports = mongoose.model('Booking', bookingSchema);
